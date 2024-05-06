@@ -1,0 +1,79 @@
+from calendar import monthrange
+import tempfile
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+from datetime import date, datetime
+import pandas as pd
+from app.db.db import DbManager, MySQLDb, QueryType
+from app.services.AuthenticationService import AuthenticationService
+from app.sql_query.Query import QuerySqlMYSQL
+
+class AccessRepository:
+
+    def __init__(self):
+        self.db_manager = DbManager(MySQLDb())
+
+    def get_access_by_date(self, date: str):
+        sql = QuerySqlMYSQL.get_access_by_date_sql()
+        params = (date,)
+        with self.db_manager as db:
+            return db.execute_query(sql, params)
+
+    def get_registry(self):
+        sql = QuerySqlMYSQL.get_registry_sql()
+        with self.db_manager as db:
+            return db.execute_query(sql)
+
+    def person_exists(self, row_id: int) -> bool:
+        sql = QuerySqlMYSQL.sql_check()
+        with self.db_manager as db:
+            result = db.execute_query(sql, (row_id,), query_type=QueryType.GET)
+        return result[0].get("ex") > 0
+ 
+    def add_person(self, row_id: int, first_name: str, last_name: str, email: str, role: str, hire_date: str, end_date: str, user_password: str):
+        sql = QuerySqlMYSQL.sql_add()
+        hashed_password = AuthenticationService.hash_password(user_password)
+        params = (row_id, first_name, last_name, email, role, hire_date, end_date, hashed_password)
+        with self.db_manager as db:
+            if db.execute_query(sql, params, query_type=QueryType.INSERT):
+                db.commit()
+
+    def update_person(self, row_id: int, first_name: str, last_name: str, email: str, role: str, hire_date: str, end_date: str, user_password: str):
+        sql = QuerySqlMYSQL.sql_update()
+        hashed_password = AuthenticationService.hash_password(user_password)
+        params = (first_name, last_name, email, role, hire_date, end_date, hashed_password, row_id)
+        with self.db_manager as db:
+            if db.execute_query(sql, params, query_type=QueryType.UPDATE):
+                db.commit()
+
+    def delete_person(self, row_id: int):
+        sql = QuerySqlMYSQL.sql_delete()
+        with self.db_manager as db:
+            if db.execute_query(sql, (row_id,), query_type=QueryType.DELETE):
+                db.commit()
+
+    def insert_access(self, employee_id: int):
+        sql = QuerySqlMYSQL.sql_insert_presence()
+        with self.db_manager as db:
+            if db.execute_query(sql, (employee_id,), query_type=QueryType.INSERT):
+                db.commit()
+
+    def insert_access_manual(self, employee_id: int, timestamp, creator):
+        sql = QuerySqlMYSQL.sql_insert_presence_manual()
+        params = (employee_id, timestamp, creator)
+        with self.db_manager as db:
+            if db.execute_query(sql, params, query_type=QueryType.INSERT):
+                db.commit()
+
+    def extract_delays(self, date: str):
+        sql = QuerySqlMYSQL.get_delays_sql()
+        params = (date, date, date)
+        with self.db_manager as db:
+            data = db.execute_query(sql, params)
+            if data:
+                return self.create_excel_report(data)
+            return self.empty_excel_response()
+
+    def create_excel_report(self, data):
+         #TODO
+        pass

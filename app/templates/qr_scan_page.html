@@ -1,0 +1,47 @@
+ {% extends "layout.html" %}
+
+{% block content %}
+
+<h1 style="width: 100%;text-align: center;"> Scann Badge</h1>
+<div id="qr-reader" style="margin-top: 30px;"></div>
+
+{% endblock %}
+
+{% block script %}
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+    // QR Code found //
+    function onScanSuccess(decodedText, decodedResult) {
+        debugger
+        if (decodedText == lastResult){
+            return;
+        }
+        lastResult = decodedText
+        
+        $.ajax({
+            type: "POST",
+            url: "/api/insert_presence",
+            data: { id: decodedText },
+            success: function (data) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Access registered ',
+                            timer: 2000
+                        })
+                    }
+                });
+            }
+
+    var lastResult = '';
+
+    var html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }
+        );
+    html5QrcodeScanner.render(onScanSuccess);
+
+</script>
+
+{% endblock %}

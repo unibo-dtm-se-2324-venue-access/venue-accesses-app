@@ -1,0 +1,17 @@
+fastapi 
+uvicorn
+pydantic_settings
+requests
+jinja2
+qrcode
+jose
+python-jose
+passlib
+mysql
+pydantic-settings
+pytest
+pandas
+python-dateutil
+openpyxl
+mysql-connector-python
+bcrypt
