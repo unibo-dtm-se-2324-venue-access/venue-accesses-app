@@ -77,3 +77,25 @@ WHERE sub.rn = 1
     @staticmethod
     def sql_delete():
         return "DELETE FROM venue.MASTER_EMPLOYEES WHERE employee_id = %s"
+    
+    @staticmethod
+    def get_access_by_employee_sql():
+        return """            
+SELECT 
+    DATE(ACC.access_time) AS access_date,
+    GROUP_CONCAT(DATE_FORMAT(ACC.access_time, '%H:%i') ORDER BY ACC.access_time) AS daily_access_times
+FROM 
+    venue.MASTER_EMPLOYEES AS EMP
+JOIN 
+    venue.access_employees AS ACC ON EMP.employee_id = ACC.employee_id
+WHERE 
+    EMP.email = %s AND
+    YEAR(ACC.access_time) = YEAR(%s) AND 
+    MONTH(ACC.access_time) = MONTH(%s)
+GROUP BY 
+    EMP.employee_id, EMP.first_name, EMP.last_name, DATE(ACC.access_time)
+ORDER BY 
+    DATE(ACC.access_time)
+            """
+    
+

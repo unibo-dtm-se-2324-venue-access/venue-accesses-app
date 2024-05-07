@@ -1,3 +1,4 @@
+from app.dependencies import TokenData
 from app.repo.AccessRepository import AccessRepository
 
 
@@ -7,6 +8,9 @@ class AccessService:
 
     def get_access_by_date(self, date: str):
         return self.repository.get_access_by_date(date)
+
+    def get_access_by_employee(self, date: str, current_user: TokenData):
+        return self.repository.get_access_by_employee(date, current_user)
 
     def get_registry(self):
         return self.repository.get_registry()

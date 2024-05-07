@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 from datetime import date, datetime
 import pandas as pd
 from app.db.db import DbManager, MySQLDb, QueryType
+from app.dependencies import TokenData
 from app.services.AuthenticationService import AuthenticationService
 from app.sql_query.Query import QuerySqlMYSQL
 
@@ -16,6 +17,12 @@ class AccessRepository:
     def get_access_by_date(self, date: str):
         sql = QuerySqlMYSQL.get_access_by_date_sql()
         params = (date,)
+        with self.db_manager as db:
+            return db.execute_query(sql, params)
+        
+    def get_access_by_employee(self, date: str, current_user: TokenData):
+        sql = QuerySqlMYSQL.get_access_by_employee_sql()
+        params = (current_user.username,date,date)
         with self.db_manager as db:
             return db.execute_query(sql, params)
 

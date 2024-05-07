@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
-from app.dependencies import TokenData, get_current_user
+from app.dependencies import TokenData, get_current_employee, get_current_manager
 
 from ..services.AccessService import AccessService
 import json
@@ -18,12 +18,17 @@ def format_time(access_time):
     except ValueError:
         return access_time 
 
+def format_date(access_time: datetime.date):
+    try:
+        return access_time.strftime('%d-%m-%Y')
+    except ValueError:
+        return access_time 
 
 @view_router.get("/presence", response_class=HTMLResponse)
 async def get_registry_list(request: Request, 
                           date: str = Query(None),
                           service: AccessService = Depends(AccessService),
-                          current_user: TokenData = Depends(get_current_user)):
+                          current_user: TokenData = Depends(get_current_manager)):
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     result = service.get_access_by_date(date)
@@ -40,9 +45,33 @@ async def get_registry_list(request: Request,
         },
     )
 
+@view_router.get("/personal_presence", response_class=HTMLResponse)
+async def get_registry_list(request: Request, 
+                            date: str = Query(default=None, description="The date to filter access records, formatted as YYYY-MM-DD"),
+                            service: AccessService = Depends(AccessService),
+                            current_user: TokenData = Depends(get_current_employee)):
+    if not date:
+        date = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        result = service.get_access_by_employee(date, current_user)
+        for item in result:
+            item['access_date'] = format_date(item['access_date'])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return templates.TemplateResponse(
+        "personal_page.html",
+        {
+            "request": request, 
+            "data": json.dumps(result, default=str),
+            "selected_date": date 
+        },
+    )
+
 
 @view_router.get("/scanQR", response_class=HTMLResponse)
-async def read_home(request: Request, current_user: TokenData = Depends(get_current_user)):
+async def read_home(request: Request, current_user: TokenData = Depends(get_current_manager)):
     return templates.TemplateResponse(
         "qr_scan_page.html", {"request": request, "title": "Scan QR"}
     )
@@ -107,7 +136,7 @@ async def insert_presence(
     personId: int = Form(...),
     timestamp: str = Form(...),
     service: AccessService = Depends(AccessService),
-    current_user: TokenData = Depends(get_current_user)
+    current_user: TokenData = Depends(get_current_manager)
 ):
     if service.person_exists(personId):
         timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M")

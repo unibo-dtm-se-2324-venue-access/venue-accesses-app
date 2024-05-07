@@ -12,6 +12,7 @@ ALGORITHM_JWT= "HS256"
 
 class TokenData(BaseModel):
   username: str
+  role: str | None
 
 def cookie_extractor(request: Request):
     token = request.cookies.get("access_token")
@@ -19,7 +20,7 @@ def cookie_extractor(request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication token not found")
     return token 
 
-def get_current_user(token: str = Depends(cookie_extractor)):
+def get_current_manager(token: str = Depends(cookie_extractor)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
@@ -28,9 +29,29 @@ def get_current_user(token: str = Depends(cookie_extractor)):
     try:
         payload = jwt.decode(token, SECRET_KEY_JWT, algorithms=[ALGORITHM_JWT])
         username: str = payload.get("email")
+        role: str = payload.get("role")
+        if username is None or role not in ['CEO','HR']:
+            raise credentials_exception
+        token_data = TokenData(username=username, role=role)
+    except JWTError as e:
+        print("JWT decoding failed:", str(e))
+        raise credentials_exception
+
+    return token_data
+
+def get_current_employee(token: str = Depends(cookie_extractor)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY_JWT, algorithms=[ALGORITHM_JWT])
+        username: str = payload.get("email")
+        role: str = payload.get("role")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(username=username, role=role)
     except JWTError as e:
         print("JWT decoding failed:", str(e))
         raise credentials_exception
