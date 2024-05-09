@@ -5,24 +5,12 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 from app.dependencies import TokenData, get_current_employee, get_current_manager
-
+from app.utility.DateUtility import DateUtility
 from ..services.AccessService import AccessService
 import json
 
 view_router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-
-def format_time(access_time):
-    try:
-        return access_time.strftime('%H:%M')
-    except ValueError:
-        return access_time 
-
-def format_date(access_time: datetime.date):
-    try:
-        return access_time.strftime('%d-%m-%Y')
-    except ValueError:
-        return access_time 
 
 @view_router.get("/presence", response_class=HTMLResponse)
 async def get_registry_list(request: Request, 
@@ -33,7 +21,8 @@ async def get_registry_list(request: Request,
         date = datetime.now().strftime('%Y-%m-%d')
     result = service.get_access_by_date(date)
     for item in result:
-        item['access_time'] = format_time(item['access_time'])
+        item['enter_time'] = DateUtility.format_time(item['enter_time'])
+        item['exit_time'] = DateUtility.format_time(item['exit_time'])
 
     
     return templates.TemplateResponse(
@@ -56,7 +45,7 @@ async def get_registry_list(request: Request,
     try:
         result = service.get_access_by_employee(date, current_user)
         for item in result:
-            item['access_date'] = format_date(item['access_date'])
+            item['access_date'] = DateUtility.format_date(item['access_date'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

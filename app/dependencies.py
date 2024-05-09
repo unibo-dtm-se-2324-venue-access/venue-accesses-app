@@ -10,6 +10,18 @@ from fastapi import Depends, HTTPException, status
 SECRET_KEY_JWT = "b9aeb1ac75e5a78ff68e0f7966c9e8a4e389fbe64a7b31e4e30b88b1141d2089"
 ALGORITHM_JWT= "HS256"
 
+credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+credentials_employee = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
 class TokenData(BaseModel):
   username: str
   role: str | None
@@ -21,17 +33,15 @@ def cookie_extractor(request: Request):
     return token 
 
 def get_current_manager(token: str = Depends(cookie_extractor)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+
     try:
         payload = jwt.decode(token, SECRET_KEY_JWT, algorithms=[ALGORITHM_JWT])
         username: str = payload.get("email")
         role: str = payload.get("role")
-        if username is None or role not in ['CEO','HR']:
+        if username is None:
             raise credentials_exception
+        if role not in ['CEO','HR']:
+            raise credentials_employee
         token_data = TokenData(username=username, role=role)
     except JWTError as e:
         print("JWT decoding failed:", str(e))

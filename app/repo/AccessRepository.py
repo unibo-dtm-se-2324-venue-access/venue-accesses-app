@@ -74,12 +74,11 @@ class AccessRepository:
 
     def extract_delays(self, date: str):
         sql = QuerySqlMYSQL.get_delays_sql()
-        params = (date, date, date)
+        params = (date, date)
         with self.db_manager as db:
             data = db.execute_query(sql, params)
             if data:
                 return self.create_excel_report(data)
-            return self.empty_excel_response()
 
     def create_excel_report(self, data):
          #TODO

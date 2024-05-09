@@ -79,6 +79,8 @@ async def login(request: Request):
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     if exc.status_code == 401:
         return RedirectResponse(url="/login")
+    if exc.status_code == 403:
+        return RedirectResponse(url='/personal_presence')
     return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 
 app.mount("/static/backgrounds", StaticFiles(directory="app/static/backgrounds"), name="background")

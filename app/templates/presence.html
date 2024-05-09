@@ -3,26 +3,37 @@
 {% block content %}
 <div class="container mt-4">
   <h2 class="text-center mb-4">Entry List for {{ selected_date }}</h2>
-
-  <!-- Date Selection Form -->
   <form id="dateForm" class="mb-4" action="/presence" method="get">
     <div class="row">
       <div class="col-md-4">
         <input type="date" id="selectedDate" name="date" class="form-control" value="{{ selected_date }}" required />
       </div>
       <div class="col-md-4">
-        <button type="submit" class="btn btn-primary">Show</button>
+        <button type="submit" class="btn btn-primary m-2">Show</button>
       </div>
+    </div>
+  </form>
+  <form id="monthYearForm" class="mb-4">
+    <div class="row">
+      <div class="col-md-4">
+        <input type="month" id="selectedMonthYear" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <button id="extractDelaysButton" class="btn btn-warning m-2" type="button" data-toggle="tooltip"
+          title="Extract Excel file with delays for the selected month and year">
+          Extract Delays
+        </button>
+        <button id="createReportButton" class="btn btn-warning m-2" type="button" data-toggle="tooltip"
+          title="Extract Excel file with delays for the selected month and year">
+          Extract Report
+        </button>
+      </div>
+    </div>
   </form>
   <div class="col text-end">
     <button id="exportButton" class="btn btn-success mb-2" data-toggle="tooltip"
       title="Extract Excel file with presences on the selected date">
       Extract Presences
-    </button>
-    <!-- New button for 'Extract Delays' -->
-    <button id="extractDelaysButton" class="btn btn-warning mb-2" data-toggle="tooltip"
-      title="Extract Excel file with delays for the entire previous month based on the selected date">
-      Extract Delays
     </button>
   </div>
 </div>
@@ -30,8 +41,10 @@
 <table id="entriesTable" class="table table-bordered display">
   <thead class="thead-light">
     <tr>
-      <th>Name</th>
-      <th>Last Name</th>
+      <th>........</th>
+      <th>........</th>
+      <th>........</th>
+      <th>........</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -48,7 +61,6 @@
 
 <script>
   $(document).ready(function () {
-    // Replace with your actual data source
     var data = {{ data | tojson | safe
   }};
   var selected_date = {{ selected_date | tojson | safe }};
@@ -66,17 +78,25 @@
       },
       {
         data: 'access_time',
+        title: 'Access'
+      },
+      {
+        data: 'enter_time',
         title: 'Entry Time'
+      },
+      {
+        data: 'exit_time',
+        title: 'Exit Time'
       }
     ],
     dom: 'frtip',
     buttons: [
       {
         extend: 'excelHtml5',
-        title: 'presences_' + selected_date, 
+        title: 'presences_' + selected_date,
         customize: function (xlsx) {
           var sheet = xlsx.xl['workbook.xml'].getElementsByTagName('sheet')[0];
-          sheet.setAttribute('name', selected_date); 
+          sheet.setAttribute('name', selected_date);
         }
       }
     ]
@@ -86,24 +106,24 @@
     table.button('.buttons-excel').trigger();
   });
 
-  $('#extractDelaysButton').on('click', function () {
-    event.preventDefault(); 
+  $('#extractDelaysButton').on('click', function (event) {
+    event.preventDefault();
 
-    var selectedDate = $('#selectedDate').val();
-    var downloadUrl = `/api/extract_delays?date=${selectedDate}`;
+    var selectedMonthYear = $('#selectedMonthYear').val() + '-01';
+    var downloadUrl = `/api/extract_delays?monthYear=${selectedMonthYear}`;
 
     fetch(downloadUrl)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        return response.blob(); 
+        return response.blob();
       })
       .then(blob => {
         var url = window.URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'delay_report.xlsx'; 
+        a.download = 'delay_report.xlsx';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -114,8 +134,36 @@
       });
   });
 
+    $('#createReportButton').on('click', function (event) {
+      event.preventDefault();
 
-      });
+      var selectedMonthYear = $('#selectedMonthYear').val() + '-01';
+      debugger
+      var downloadUrl = `/api/create_excel_report?monthYear=${selectedMonthYear}`;
+
+      fetch(downloadUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          var url = window.URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'delay_report.xlsx';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+          console.error('There was a problem with the fetch operation:', error);
+        });
+    });
+
+  });
 </script>
 
 {% endblock %}

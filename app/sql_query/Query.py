@@ -19,7 +19,9 @@ class QuerySqlMYSQL:
                 EMP.employee_id,
                 EMP.first_name,
                 EMP.last_name,
-                MIN(ACC.access_time) AS access_time
+                GROUP_CONCAT(DATE_FORMAT(ACC.access_time, '%H:%i') ORDER BY ACC.access_time) AS access_time,
+                MIN(ACC.access_time) AS enter_time, 
+                MAX(ACC.access_time) AS exit_time
             FROM 
                 venue.MASTER_EMPLOYEES AS EMP
             JOIN 
@@ -28,42 +30,43 @@ class QuerySqlMYSQL:
                 DATE(ACC.access_time) = %s
             GROUP BY 
                 EMP.employee_id, EMP.first_name, EMP.last_name
-
                 """
 
     @staticmethod
     def get_delays_sql():
         return """
-SELECT
-    sub.employee_id,
-    sub.first_name,
-    sub.last_name,
-    sub.access_time,
-    GREATEST(TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(%s, ' 08:30'), '%Y-%m-%d %H:%i'), sub.access_time), 0) AS DELAY_IN_MINUTES
-FROM (
-    SELECT 
-        EMP.employee_id, 
-        EMP.first_name,
-        EMP.last_name,
-        ACC.access_time,
-        @rn := IF(@prev = EMP.employee_id, @rn + 1, 1) AS rn,
-        @prev := EMP.employee_id
-    FROM venue.MASTER_EMPLOYEES EMP 
-    JOIN venue.access_employees ACC ON EMP.employee_id = ACC.employee_id 
-    CROSS JOIN (SELECT @rn := 0, @prev := NULL) AS vars
-    WHERE ACC.access_time >= STR_TO_DATE(%s, '%Y-%m-%d') 
-    AND ACC.access_time < DATE_ADD(STR_TO_DATE(%s, '%Y-%m-%d'), INTERVAL 1 DAY)
-    ORDER BY EMP.employee_id, ACC.access_time
-) sub
-WHERE sub.rn = 1
+                SELECT 
+                    EMP.employee_id,
+                    EMP.first_name,
+                    EMP.last_name,
+                    DATE(ACC.access_time) AS date,
+                    TIME_FORMAT(MIN(ACC.access_time), '%H:%i') AS enter_time,
+                    CASE
+                        WHEN TIME(MIN(ACC.access_time)) > '08:00:00' THEN
+                            (TIME_TO_SEC(TIME(MIN(ACC.access_time))) - TIME_TO_SEC('08:00:00')) / 60
+                        ELSE
+                            0
+                    END AS delay_minutes
+                FROM 
+                    venue.MASTER_EMPLOYEES AS EMP
+                JOIN 
+                    venue.access_employees AS ACC ON EMP.employee_id = ACC.employee_id
+                WHERE 
+                    MONTH(ACC.access_time) = MONTH(%s) AND YEAR(ACC.access_time) = YEAR(%s)
+                GROUP BY 
+                    EMP.employee_id, EMP.first_name, EMP.last_name, DATE(ACC.access_time)
+                ORDER BY 
+                    EMP.employee_id, DATE(ACC.access_time);
 
         """
 
     @staticmethod
     def sql_update():
-        return """        UPDATE venue.MASTER_EMPLOYEES 
+        return """        
+        UPDATE venue.MASTER_EMPLOYEES 
         SET first_name = %s, last_name = %s, email = %s, role = %s, hire_date = STR_TO_DATE(%s, '%Y-%m-%d') , end_date = STR_TO_DATE(%s, '%%Y-%%m-%%d') , user_password = %s 
-        WHERE employee_id = %s"""
+        WHERE employee_id = %s
+        """
     
     @staticmethod
     def sql_add():
@@ -81,21 +84,21 @@ WHERE sub.rn = 1
     @staticmethod
     def get_access_by_employee_sql():
         return """            
-SELECT 
-    DATE(ACC.access_time) AS access_date,
-    GROUP_CONCAT(DATE_FORMAT(ACC.access_time, '%H:%i') ORDER BY ACC.access_time) AS daily_access_times
-FROM 
-    venue.MASTER_EMPLOYEES AS EMP
-JOIN 
-    venue.access_employees AS ACC ON EMP.employee_id = ACC.employee_id
-WHERE 
-    EMP.email = %s AND
-    YEAR(ACC.access_time) = YEAR(%s) AND 
-    MONTH(ACC.access_time) = MONTH(%s)
-GROUP BY 
-    EMP.employee_id, EMP.first_name, EMP.last_name, DATE(ACC.access_time)
-ORDER BY 
-    DATE(ACC.access_time)
+            SELECT 
+                DATE(ACC.access_time) AS access_date,
+                GROUP_CONCAT(DATE_FORMAT(ACC.access_time, '%H:%i') ORDER BY ACC.access_time) AS daily_access_times
+            FROM 
+                venue.MASTER_EMPLOYEES AS EMP
+            JOIN 
+                venue.access_employees AS ACC ON EMP.employee_id = ACC.employee_id
+            WHERE 
+                EMP.email = %s AND
+                YEAR(ACC.access_time) = YEAR(%s) AND 
+                MONTH(ACC.access_time) = MONTH(%s)
+            GROUP BY 
+                EMP.employee_id, EMP.first_name, EMP.last_name, DATE(ACC.access_time)
+            ORDER BY 
+                DATE(ACC.access_time)
             """
     
 

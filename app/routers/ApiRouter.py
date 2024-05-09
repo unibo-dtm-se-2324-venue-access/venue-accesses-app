@@ -22,11 +22,23 @@ async def insert_presence(
 
 @api_router.get("/extract_delays")
 async def extract_delays(
-    date: date = Query(..., description="The date to extract delays for"),
+    monthYear: date = Query(...),
     service: AccessService = Depends(AccessService),
 ):
     try:
-        delays = service.extract_delays(date)
+        delays = service.extract_delays(monthYear)
+        return delays
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail=f"Error extracting delays: {str(e)}")
+    
+@api_router.get("/create_excel_report")
+async def create_excel_report(
+    monthYear: date = Query(...),
+    service: AccessService = Depends(AccessService),
+):
+    try:
+        delays = service.create_excel_report(monthYear)
         return delays
     except Exception as e:
         print(e)
