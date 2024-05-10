@@ -1,6 +1,9 @@
 from calendar import monthrange
+from decimal import Decimal
+import os
 import tempfile
 from io import BytesIO
+from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from datetime import date, datetime
 import pandas as pd
@@ -72,13 +75,32 @@ class AccessRepository:
             if db.execute_query(sql, params, query_type=QueryType.INSERT):
                 db.commit()
 
-    def extract_delays(self, date: str):
-        sql = QuerySqlMYSQL.get_delays_sql()
+    def extract_delays(self, date: datetime.date):
+        sql = QuerySqlMYSQL.get_delays_sql()  
         params = (date, date)
+
         with self.db_manager as db:
-            data = db.execute_query(sql, params)
-            if data:
-                return self.create_excel_report(data)
+            try:
+                data = db.execute_query(sql, params)
+                print(f"Data retrieved: {data}") 
+                
+                if data:
+                    df = pd.DataFrame(data)
+                    
+                    df['delay_minutes'] = df['delay_minutes'].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+
+                    excel_path = f"delays_{date.strftime('%m%d%Y')}.xlsx"
+                    
+                    df.to_excel(excel_path, index=False)
+                    
+                    print(f"Excel file created at {excel_path}")
+                    return excel_path
+                else:
+                    print("No data found for the given date.")
+                    return None
+            except Exception as e:
+                print(f"An error occurred while extracting delays: {e}")
+                return None
 
     def create_excel_report(self, data):
          #TODO
