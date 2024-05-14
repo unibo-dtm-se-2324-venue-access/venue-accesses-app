@@ -101,4 +101,22 @@ class QuerySqlMYSQL:
                 DATE(ACC.access_time)
             """
     
+    @staticmethod
+    def get_monthly_report():
+        return """
+
+        SELECT 
+            employee_id,
+            access_time
+        FROM 
+            venue.access_employees
+        WHERE 
+            MONTH(access_time) = MONTH(%s) AND YEAR(access_time) = YEAR(%s)
+        ORDER BY 
+            employee_id, access_time;
+
+"""
+
+
+    
 

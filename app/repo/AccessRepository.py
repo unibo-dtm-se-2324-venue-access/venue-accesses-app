@@ -82,26 +82,19 @@ class AccessRepository:
         with self.db_manager as db:
             try:
                 data = db.execute_query(sql, params)
-                print(f"Data retrieved: {data}") 
-                
-                if data:
-                    df = pd.DataFrame(data)
-                    
-                    df['delay_minutes'] = df['delay_minutes'].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
-
-                    excel_path = f"delays_{date.strftime('%m%d%Y')}.xlsx"
-                    
-                    df.to_excel(excel_path, index=False)
-                    
-                    print(f"Excel file created at {excel_path}")
-                    return excel_path
-                else:
-                    print("No data found for the given date.")
-                    return None
+                return data
             except Exception as e:
                 print(f"An error occurred while extracting delays: {e}")
                 return None
 
-    def create_excel_report(self, data):
-         #TODO
-        pass
+    def get_report_data(self, date):
+        sql = QuerySqlMYSQL.get_monthly_report()  
+        params = (date, date)
+
+        with self.db_manager as db:
+            try:
+                data = db.execute_query(sql, params)
+                return data
+            except Exception as e:
+                print(f"An error occurred while extracting delays: {e}")
+                return None
