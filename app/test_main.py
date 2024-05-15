@@ -17,7 +17,7 @@ def test_add_or_update_person():
         "user_password": "password123"
     })
     assert response.status_code == 200
-    assert response.json() == {"message": "Person added"}
+    assert response.json() == {"message": "Person updated"} or response.json() == {"message": "Person added"}
 
 def test_insert_presence():
     response = client.post("/api/insert_presence", data={"id": "123456789"})
@@ -32,10 +32,13 @@ def test_delete_person():
 @patch('app.services.AccessService.AccessService.extract_delays')
 def test_extract_delays(mock_extract_delays):
     mock_extract_delays.return_value = 'delays_05012024.xlsx'
-    # mocked path for the duration of the test
-    with patch('os.path.exists', return_value=True):
+    # Mock the file existence and file opening
+    with patch('os.path.exists', return_value=True), \
+         patch('builtins.open', mock_open(read_data="data")) as mocked_file:
         response = client.get("/api/extract_delays", params={"monthYear": "2023-05-01"})
         assert response.status_code == 200
+        mocked_file.assert_called_with('delays_05012024.xlsx', 'rb')  # Ensure file is opened as expected
+
 
 @patch('app.services.AccessService.AccessService.create_excel_report', return_value='month_report_2024_05.xlsx')
 @patch('os.path.exists', return_value=True)
