@@ -83,7 +83,7 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         return RedirectResponse(url='/personal_presence')
     return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 
-app.mount("/static/backgrounds", StaticFiles(directory="app/static/backgrounds"), name="background")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(api_router)
 app.include_router(view_router)
 app.include_router(router)
