@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t ${{ github.event.repository.name }}:${{ github.ref_name }} .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Pull Docker image
+        run: docker pull ${{ github.event.repository.name }}:${{ github.ref_name }}
+
+      - name: Run tests
+        run: docker run ${{ github.event.repository.name }}:${{ github.ref_name }} pytest
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Harbor registry
+        env:
+          HARBOR_REGISTRY: ${{ secrets.HARBOR_REGISTRY }}
+          HARBOR_USER: ${{ secrets.HARBOR_USER }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: echo ${{ secrets.HARBOR_PASSWORD }} | docker login "${{ secrets.HARBOR_REGISTRY }}" -u "${{ secrets.HARBOR_USER }}" --password-stdin
+
+      - name: Tag Docker image
+        run: docker tag ${{ github.event.repository.name }}:${{ github.ref_name }} ${{ secrets.HARBOR_REGISTRY }}/${{ github.event.repository.name }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.HARBOR_REGISTRY }}/${{ github.event.repository.name }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Remove local Docker images
+        run: |
+          docker rmi --force ${{ github.event.repository.name }}:${{ github.ref_name }}
+          docker rmi --force ${{ secrets.HARBOR_REGISTRY }}/${{ github.event.repository.name }}/${{ github.event.repository.name }}:${{ github.ref_name }}
