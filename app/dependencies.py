@@ -31,9 +31,8 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from fastapi import Depends, HTTPException, status
 
+from app.settings import get_settings
 
-SECRET_KEY_JWT = "b9aeb1ac75e5a78ff68e0f7966c9e8a4e389fbe64a7b31e4e30b88b1141d2089"
-ALGORITHM_JWT= "HS256"
 
 class TokenData(BaseModel):
   username: str
@@ -50,7 +49,7 @@ def cookie_extractor(request: Request):
 def get_current_manager(token: str = Depends(cookie_extractor)):
     # Decode the JWT token to get the user's information
     try:
-        payload = jwt.decode(token, SECRET_KEY_JWT, algorithms=[ALGORITHM_JWT])
+        payload = jwt.decode(token, get_settings().SECRET_KEY_JWT, algorithms=[get_settings().ALGORITHM_JWT])
         username: str = payload.get("email")
         role: str = payload.get("role")
         # Validate username presence
@@ -85,7 +84,7 @@ def get_current_employee(token: str = Depends(cookie_extractor)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY_JWT, algorithms=[ALGORITHM_JWT])
+        payload = jwt.decode(token, get_settings().SECRET_KEY_JWT, algorithms=[get_settings().ALGORITHM_JWT])
         username: str = payload.get("email")
         role: str = payload.get("role")
         # Ensure the username is present
@@ -118,5 +117,5 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": int(expire.timestamp())})
 
     # Encode the JWT token
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY_JWT, algorithm=ALGORITHM_JWT)
+    encoded_jwt = jwt.encode(to_encode, get_settings().SECRET_KEY_JWT, algorithm=get_settings().ALGORITHM_JWT)
     return encoded_jwt
