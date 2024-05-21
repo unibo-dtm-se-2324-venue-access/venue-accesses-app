@@ -15,4 +15,4 @@ python-dateutil
 openpyxl
 mysql-connector-python
 bcrypt
- 
+coverage 
