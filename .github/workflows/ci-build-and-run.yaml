@@ -32,12 +32,6 @@ jobs:
         run: |
           docker run -d -p 8000:80 \
           --name test_container \
-          -e API_MYSQL_HOSTNAME=host.docker.internal \
-          -e API_MYSQL_PORT=3307 \
-          -e API_MYSQL_USERNAME=root \
-          -e API_MYSQL_PASSWORD=root \
-          -e SECRET_KEY_JWT=b9aeb1ac75e5a78ff68e0f7966c9e8a4e389fbe64a7b31e4e30b88b1141d2089 \
-          -e ALGORITHM_JWT=HS256 \
           ${{ github.repository }}:${{ github.sha }}
 
       - name: Wait for the container to be ready
