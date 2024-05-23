@@ -23,9 +23,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Pull Docker image
-        run: docker pull ${{ github.event.repository.name }}:${{ github.ref_name }}
-
       - name: Run tests
         run: docker run ${{ github.event.repository.name }}:${{ github.ref_name }} pytest
 
