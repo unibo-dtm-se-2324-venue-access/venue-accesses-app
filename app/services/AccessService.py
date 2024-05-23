@@ -155,7 +155,8 @@ class AccessService:
             'duration': 'WORK HOURS'
         }, inplace=True)
 
-        df = df[['ID', 'FIRST NAME', 'LAST NAME', 'WORK HOURS']]
+        df = df[
+            ['ID', 'FIRST NAME', 'LAST NAME', 'WORK HOURS']]
 
         # Write to Excel file and return the file name
         file_name='month_report_' + date.strftime('%Y_%m')
