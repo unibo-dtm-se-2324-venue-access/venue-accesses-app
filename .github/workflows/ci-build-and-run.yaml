@@ -54,7 +54,7 @@ jobs:
 
       - name: Test application endpoint
         run: |
-          curl --fail http://localhost:8000/health/db || (docker logs test_container && exit 1)
+          curl --fail http://localhost:8000/health || (docker logs test_container && exit 1)
 
       - name: Stop and remove container
         run: |

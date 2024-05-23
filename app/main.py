@@ -79,6 +79,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+@app.get("/health", response_class=JSONResponse)
+def db_health_check():
+    return JSONResponse(content={"status": "healthy"}, status_code=status.HTTP_200_OK)
+
 @app.get("/health/db", response_class=JSONResponse)
 def db_health_check():
     """
