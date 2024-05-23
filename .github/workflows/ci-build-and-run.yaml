@@ -1,0 +1,64 @@
+name: CI Build and Run Container
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        run: docker build -t ${{ github.repository }}:${{ github.sha }} .
+
+      - name: Run Docker container
+        run: |
+          docker run -d -p 8000:80 \
+          --name test_container \
+          -e API_MYSQL_HOSTNAME=host.docker.internal \
+          -e API_MYSQL_PORT=3307 \
+          -e API_MYSQL_USERNAME=root \
+          -e API_MYSQL_PASSWORD=root \
+          -e SECRET_KEY_JWT=b9aeb1ac75e5a78ff68e0f7966c9e8a4e389fbe64a7b31e4e30b88b1141d2089 \
+          -e ALGORITHM_JWT=HS256 \
+          ${{ github.repository }}:${{ github.sha }}
+
+      - name: Wait for the container to be ready
+        run: sleep 10
+
+      - name: Test container is running
+        run: |
+          if [ $(docker inspect -f '{{.State.Running}}' test_container) = "true" ]; then 
+            echo "Container is running"; 
+          else 
+            echo "Container failed to start"; 
+            exit 1; 
+          fi
+
+      - name: Test application endpoint
+        run: |
+          curl --fail http://localhost:8000 || (docker logs test_container && exit 1)
+
+      - name: Stop and remove container
+        run: |
+          docker stop test_container
+          docker rm test_container
+
+      - name: Clean up Docker images
+        run: docker rmi --force ${{ github.repository }}:${{ github.sha }}
