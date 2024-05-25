@@ -15,13 +15,29 @@ jobs:
       - name: Build Docker image
         run: docker build -t ${{ github.event.repository.name }}:${{ github.ref_name }} .
 
+      - name: Save Docker image
+        run: docker save -o my_image.tar ${{ github.event.repository.name }}:${{ github.ref_name }}
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: my_image
+          path: my_image.tar
+
   test:
     runs-on: ubuntu-latest
-    
     needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: my_image
+
+      - name: Load Docker image
+        run: docker load -i my_image.tar
 
       - name: Run tests
         run: docker run ${{ github.event.repository.name }}:${{ github.ref_name }} pytest
@@ -32,6 +48,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: my_image
+
+      - name: Load Docker image
+        run: docker load -i my_image.tar
 
       - name: Login to Harbor registry
         env:
