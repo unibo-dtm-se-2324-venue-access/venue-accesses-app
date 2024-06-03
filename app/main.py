@@ -100,7 +100,7 @@ def db_health_check():
         return JSONResponse(content={"status": "unhealthy", "error": str(e)}, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
-@app.get("/login", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse, include_in_schema=False)
 async def login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
