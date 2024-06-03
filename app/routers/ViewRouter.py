@@ -37,7 +37,7 @@ import json
 view_router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-@view_router.get("/presence", response_class=HTMLResponse)
+@view_router.get("/presence", response_class=HTMLResponse, include_in_schema=False)
 async def get_registry_list(request: Request, 
                           date: str = Query(None),
                           service: AccessService = Depends(AccessService),
@@ -59,7 +59,7 @@ async def get_registry_list(request: Request,
         },
     )
 
-@view_router.get("/personal_presence", response_class=HTMLResponse)
+@view_router.get("/personal_presence", response_class=HTMLResponse, include_in_schema=False)
 async def get_registry_list(request: Request, 
                             date: str = Query(default=None, description="The date to filter access records, formatted as YYYY-MM-DD"),
                             service: AccessService = Depends(AccessService),
@@ -84,14 +84,14 @@ async def get_registry_list(request: Request,
     )
 
 
-@view_router.get("/scanQR", response_class=HTMLResponse)
+@view_router.get("/scanQR", response_class=HTMLResponse, include_in_schema=False)
 async def read_home(request: Request, current_user: TokenData = Depends(get_current_manager)):
     return templates.TemplateResponse(
         "qr_scan_page.html", {"request": request, "title": "Scan QR"}
     )
 
 
-@view_router.get("/registry", response_class=HTMLResponse)
+@view_router.get("/registry", response_class=HTMLResponse, include_in_schema=False)
 async def get_registry_list(
     request: Request, service: AccessService = Depends(AccessService)
 ):
@@ -102,7 +102,7 @@ async def get_registry_list(
     )
 
 
-@view_router.post("/add_or_update_person")
+@view_router.post("/add_or_update_person", include_in_schema=False)
 async def add_or_update_person(
     request: Request,
     rowId: int = Form(...),
@@ -126,7 +126,7 @@ async def add_or_update_person(
         {"request": request, "data": json.dumps(service.get_registry(), default=str)},
     )
 
-@view_router.post("/delete_person")
+@view_router.post("/delete_person", include_in_schema=False)
 async def delete_person(
     request: Request,     
     rowId: int = Form(...), 
@@ -144,7 +144,7 @@ async def delete_person(
     )
 
 
-@view_router.post("/insert_presence")
+@view_router.post("/insert_presence", include_in_schema=False)
 async def insert_presence(
     request: Request,
     personId: int = Form(...),
