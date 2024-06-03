@@ -91,7 +91,6 @@ class AccessService:
             return None 
     
     def create_excel_report(self, date):
-        # Create a detaile Excel report for a specific month
         data = self.repository.get_report_data(date)
         df = pd.DataFrame(data)
 
@@ -126,10 +125,7 @@ class AccessService:
         )
 
         # Calculate durations and aggregate monthly hours
-        if 'out_time' in merged_times and 'in_time' in merged_times:
-            merged_times['duration'] = (merged_times['out_time'] - merged_times['in_time']).dt.total_seconds() / 3600
-        else:
-            merged_times['duration'] = 0 
+        merged_times['duration'] = (merged_times['out_time'] - merged_times['in_time']).dt.total_seconds() / 3600
 
         # Aggregate hours and prepare final DataFrame
         monthly_hours = merged_times.groupby('employee_id')['duration'].sum().reset_index()
@@ -140,11 +136,21 @@ class AccessService:
         reg = self.get_registry()
         name_map = {emp['employee_id']: (emp['first_name'], emp['last_name']) for emp in reg}
 
-        for entry in monthly_hours:
-            if entry['employee_id'] in name_map:
-                entry['first_name'], entry['last_name'] = name_map[entry['employee_id']]
+        # Create lists for first and last names
+        first_names = []
+        last_names = []
+
+        for emp_id in monthly_hours['employee_id']:
+            if emp_id in name_map:
+                first_name, last_name = name_map[emp_id]
             else:
-                entry['first_name'], entry['last_name'] = None, None
+                first_name, last_name = None, None
+            first_names.append(first_name)
+            last_names.append(last_name)
+
+        # Add the names to the DataFrame
+        monthly_hours['first_name'] = first_names
+        monthly_hours['last_name'] = last_names
 
         # Format the final DataFrame
         df = pd.DataFrame(monthly_hours)
@@ -155,11 +161,10 @@ class AccessService:
             'duration': 'WORK HOURS'
         }, inplace=True)
 
-        df = df[
-            ['ID', 'FIRST NAME', 'LAST NAME', 'WORK HOURS']]
+        df = df[['ID', 'FIRST NAME', 'LAST NAME', 'WORK HOURS']]
 
         # Write to Excel file and return the file name
-        file_name='month_report_' + date.strftime('%Y_%m')
+        file_name = 'month_report_' + date.strftime('%Y_%m') + '.xlsx'
         with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Employee Hours')
 
