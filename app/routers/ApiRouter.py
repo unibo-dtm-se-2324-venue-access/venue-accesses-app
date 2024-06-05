@@ -45,6 +45,7 @@ async def insert_presence(
     id: str = Form(...),
     service: AccessService = Depends(AccessService),
 ):
+    service.insert_access(id)
     return JSONResponse(
             status_code=200,
             content={
